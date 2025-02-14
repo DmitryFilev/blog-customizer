@@ -1,7 +1,7 @@
 import { ArrowButton } from 'src/ui/arrow-button';
 import { Button } from 'src/ui/button';
 import styles from './ArticleParamsForm.module.scss';
-import { useState } from 'react';
+import { FormEvent, useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { RadioGroup } from 'src/ui/radio-group';
 import { Select } from 'src/ui/select';
@@ -17,7 +17,8 @@ import {
 } from 'src/constants/articleProps';
 
 import { Separator } from 'src/ui/separator';
-
+import { Text } from 'src/ui/text';
+import { useOutsideClickClose } from './hooks/useOutsideClickClose';
 type SelectProps = {
 	onChange: (params: ArticleStateType) => void;
 };
@@ -25,47 +26,60 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 	/**
 	 * установка стилей страницы
 	 */
-	const setArticle = () => {
-		onChange(sideBarState);
+	const setArticle = (e: FormEvent) => {
+		e.preventDefault();
+		onChange(sidebarState);
 	};
 	/**
-	 * состояние откытости/закрытости side Bar
+	 * состояние откытости/закрытости sidebar
 	 */
-	const [isOpenSideBar, setIsOpenSideBar] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
 	/**
 	 * state for side bar
 	 */
-	const [sideBarState, setSideBarState] = useState(defaultArticleState);
+	const [sidebarState, setSidebarState] = useState(defaultArticleState);
 	/**
 	 * Функция обновляет форму сайдбара и страницу до значений по умолчанию
 	 */
 	const setDefault = () => {
-		setSideBarState(defaultArticleState);
+		setSidebarState(defaultArticleState);
 		onChange(defaultArticleState);
 	};
 	/**
 	 * Функция обновляет предварительный пул параметров стиля страницы
 	 */
 	const setValue = (selected: OptionType, option: string) => {
-		const val = { ...sideBarState, [option]: selected };
-		setSideBarState(val);
+		const val = { ...sidebarState, [option]: selected };
+		setSidebarState(val);
 	};
+	const rootRef = useRef<HTMLDivElement>(null);
+	const onClose = () => {
+		setIsOpen(!isOpen);
+	};
+	/**
+	 * Функция закрытия сайдбара кликом по странице
+	 */
+	useOutsideClickClose({
+		isOpen,
+		rootRef,
+		onClose,
+		onChange: setIsOpen,
+	});
 	return (
-		<>
-			<ArrowButton
-				isOpen={isOpenSideBar}
-				onClick={() => {
-					setIsOpenSideBar(!isOpenSideBar);
-				}}
-			/>
+		<div ref={rootRef}>
+			<ArrowButton isOpen={isOpen} onClick={onClose} />
 			<aside
-				className={clsx(
-					isOpenSideBar && styles.container_open,
-					styles.container
-				)}>
-				<form className={styles.form}>
+				className={clsx({ [styles.container_open]: isOpen }, styles.container)}>
+				<form
+					className={styles.form}
+					onSubmit={(event) => {
+						setArticle(event);
+					}}>
+					<Text as='h2' size={31} weight={800} family={'open-sans'} uppercase>
+						задайте параметры
+					</Text>
 					<Select
-						selected={sideBarState.fontFamilyOption}
+						selected={sidebarState.fontFamilyOption}
 						onChange={(selected) => {
 							setValue(selected, 'fontFamilyOption');
 						}}
@@ -73,7 +87,7 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 						title='Шрифт'
 					/>
 					<RadioGroup
-						selected={sideBarState.fontSizeOption}
+						selected={sidebarState.fontSizeOption}
 						onChange={(selected) => {
 							setValue(selected, 'fontSizeOption');
 						}}
@@ -82,7 +96,7 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 						title='Размер Шрифта'
 					/>
 					<Select
-						selected={sideBarState.fontColor}
+						selected={sidebarState.fontColor}
 						onChange={(selected) => {
 							setValue(selected, 'fontColor');
 						}}
@@ -91,7 +105,7 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 					/>
 					<Separator />
 					<Select
-						selected={sideBarState.backgroundColor}
+						selected={sidebarState.backgroundColor}
 						onChange={(selected) => {
 							setValue(selected, 'backgroundColor');
 						}}
@@ -99,7 +113,7 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 						title='Цвет фона'
 					/>
 					<Select
-						selected={sideBarState.contentWidth}
+						selected={sidebarState.contentWidth}
 						onChange={(selected) => {
 							setValue(selected, 'contentWidth');
 						}}
@@ -113,15 +127,10 @@ export const ArticleParamsForm = ({ onChange }: SelectProps) => {
 							type='clear'
 							onClick={setDefault}
 						/>
-						<Button
-							title='Применить'
-							htmlType='button'
-							type='apply'
-							onClick={setArticle}
-						/>
+						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
 			</aside>
-		</>
+		</div>
 	);
 };
